@@ -717,10 +717,28 @@
       margin-bottom: 8px;
       cursor: default;
       transition: all 0.2s;
+      border: 2px solid transparent;
+      position: relative;
     }
     .morning-task-item.morning-drag-over {
-      border: 2px dashed var(--primary);
+      border: 2px solid var(--primary);
       background: rgba(99, 102, 241, 0.1);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+    .morning-task-item.morning-drag-over::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: -4px;
+      bottom: -4px;
+      width: 3px;
+      background: var(--primary);
+      border-radius: 0 2px 2px 0;
+    }
+    .morning-task-item.morning-dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
     .morning-drag-handle {
       color: var(--text-secondary);
@@ -728,8 +746,10 @@
       cursor: grab;
       padding: 4px;
       user-select: none;
+      transition: color 0.2s;
     }
-    .morning-drag-handle:active { cursor: grabbing; }
+    .morning-drag-handle:hover { color: var(--primary); }
+    .morning-drag-handle:active { cursor: grabbing; color: var(--primary); }
     .morning-task-content {
       display: flex;
       align-items: center;
@@ -2245,13 +2265,18 @@
         <div id="morningTimerContainer" style="margin-bottom:40px;">
           <div style="font-family:'JetBrains Mono',monospace;font-size:56px;font-weight:700;color:var(--primary);" id="morningTimerDisplay">01:00</div>
           <div style="color:var(--text-secondary);margin-top:8px;font-size:13px;" id="morningTimerLabel">专注完成本项任务</div>
+          <!-- 计时结束确认提示 -->
+          <div id="morningTimerEndedHint" style="display:none;margin-top:16px;padding:12px 20px;background:rgba(99,102,241,0.1);border-radius:12px;">
+            <div style="color:var(--primary);font-size:14px;font-weight:600;">⏰ 计时已结束</div>
+            <div style="color:var(--text-secondary);font-size:13px;margin-top:4px;">确认完成这项任务了吗？</div>
+          </div>
         </div>
         
         <button class="btn btn-primary" style="font-size:18px;padding:16px 40px;" id="morningCompleteBtn" onclick="completeMorningTask()">
           ✓ 完成本项
         </button>
         
-        <button class="btn btn-secondary" style="margin-top:12px;font-size:14px;" onclick="skipMorningTask()">
+        <button class="btn btn-secondary" style="margin-top:12px;font-size:14px;" id="morningSkipBtn" onclick="skipMorningTask()">
           跳过本项
         </button>
         
@@ -3794,12 +3819,8 @@
       saveData();
       renderTasks();
       updateTaskPicker();
-      // 强制关闭弹窗（使用setTimeout确保在Toast之后执行）
-      setTimeout(() => {
-        const modal = document.getElementById('taskModal');
-        if (modal) modal.classList.remove('active');
-        editingTaskId = null;
-      }, 100);
+      // 立即关闭弹窗
+      closeTaskModal();
     }
 
     function toggleTask(taskId) {
@@ -3864,6 +3885,15 @@
 
     function deleteTask(taskId) {
       if (confirm('确定要删除这个任务吗？')) {
+        const task = appData.tasks.find(t => t.id === taskId);
+        
+        // 如果任务已完成，扣除已获得的积分
+        if (task && task.status === 'completed') {
+          const pointsToDeduct = getTaskReward(task.importance);
+          appData.user.points = Math.max(0, appData.user.points - pointsToDeduct);
+          updateHeaderPoints();
+        }
+        
         appData.tasks = appData.tasks.filter(t => t.id !== taskId);
         if (timerState.linkedTaskId === taskId) {
           timerState.linkedTaskId = null;
@@ -5284,7 +5314,8 @@
       currentIndex: 0,
       tasks: [],
       timer: null,
-      remaining: 0
+      remaining: 0,
+      timerEnded: false // 标记计时是否已结束，需要用户确认
     };
 
     function openMorningRoutineModal() {
@@ -5321,10 +5352,15 @@
     // 晨间任务拖拽排序
     let morningDragIndex = -1;
     let morningDragOverIndex = -1;
+    let morningDraggedElement = null;
 
     function startMorningDrag(index, e) {
       e.preventDefault();
       morningDragIndex = index;
+      morningDraggedElement = document.querySelectorAll('.morning-task-item')[index];
+      if (morningDraggedElement) {
+        morningDraggedElement.classList.add('morning-dragging');
+      }
       
       document.addEventListener('mousemove', handleMorningDragMove);
       document.addEventListener('mouseup', handleMorningDragEnd);
@@ -5339,16 +5375,15 @@
       const items = document.querySelectorAll('.morning-task-item');
       
       items.forEach((item, i) => {
-        item.classList.remove('morning-drag-over');
+        if (item !== morningDraggedElement) {
+          item.classList.remove('morning-drag-over');
+        }
         const rect = item.getBoundingClientRect();
         if (clientY > rect.top && clientY < rect.bottom) {
-          if (clientY < rect.top + rect.height / 2) {
+          if (item !== morningDraggedElement) {
             item.classList.add('morning-drag-over');
-            morningDragOverIndex = i;
-          } else {
-            item.classList.add('morning-drag-over');
-            morningDragOverIndex = i;
           }
+          morningDragOverIndex = i;
         }
       });
     }
@@ -5360,6 +5395,11 @@
       document.removeEventListener('mouseup', handleMorningDragEnd);
       document.removeEventListener('touchmove', handleMorningDragMove);
       document.removeEventListener('touchend', handleMorningDragEnd);
+      
+      // 移除拖拽样式
+      if (morningDraggedElement) {
+        morningDraggedElement.classList.remove('morning-dragging');
+      }
       
       // 执行排序
       if (morningDragOverIndex !== -1 && morningDragOverIndex !== morningDragIndex) {
@@ -5378,6 +5418,7 @@
       
       morningDragIndex = -1;
       morningDragOverIndex = -1;
+      morningDraggedElement = null;
     }
 
     function addMorningTask() {
@@ -5489,7 +5530,8 @@
         currentIndex: 0,
         tasks: [...appData.morningRoutine],
         timer: null,
-        remaining: 0
+        remaining: 0,
+        timerEnded: false
       };
       
       // 语音播报开始
@@ -5510,6 +5552,15 @@
       document.getElementById('morningCurrentIcon').textContent = task.icon;
       document.getElementById('morningCurrentTitle').textContent = task.title;
       document.getElementById('morningCurrentDesc').textContent = task.description || '专注完成本项任务';
+      
+      // 重置计时结束状态
+      morningSessionState.timerEnded = false;
+      
+      // 隐藏结束确认提示
+      document.getElementById('morningTimerEndedHint').style.display = 'none';
+      document.getElementById('morningTimerDisplay').style.color = 'var(--primary)';
+      document.getElementById('morningCompleteBtn').textContent = '✓ 完成本项';
+      document.getElementById('morningSkipBtn').style.display = 'inline-block';
       
       // 渲染进度点
       const progressDots = document.getElementById('morningProgressDots');
@@ -5539,9 +5590,20 @@
           speakText('还剩一分钟，继续加油！');
         }
         
-        if (morningSessionState.remaining <= 0) {
+        if (morningSessionState.remaining <= 0 && !morningSessionState.timerEnded) {
+          // 计时结束，显示确认提示
+          morningSessionState.timerEnded = true;
           clearInterval(morningSessionState.timer);
-          speakText('时间到！这项任务完成了！');
+          morningSessionState.timer = null;
+          
+          // 显示结束确认提示
+          document.getElementById('morningTimerEndedHint').style.display = 'block';
+          document.getElementById('morningTimerDisplay').style.color = 'var(--secondary)';
+          document.getElementById('morningCompleteBtn').textContent = '✓ 确认完成';
+          document.getElementById('morningSkipBtn').textContent = '稍后确认';
+          
+          // 语音提醒
+          speakText('时间到了！请确认是否完成了这项任务。');
         }
       }, 1000);
     }
@@ -5560,11 +5622,18 @@
       }
       
       const task = morningSessionState.tasks[morningSessionState.currentIndex];
-      const actualMinutes = Math.floor((task.duration * 60 - morningSessionState.remaining) / 60) || 1;
+      const actualMinutes = Math.max(1, Math.floor((task.duration * 60 - morningSessionState.remaining) / 60));
       
-      // 给积分奖励
-      addPoints(Math.ceil(actualMinutes * 2)); // 每分钟2分
-      speakText('太棒了！' + (task.title) + '完成！');
+      // 给积分奖励（只有在计时结束后确认才给积分）
+      if (morningSessionState.timerEnded) {
+        // 计时结束后确认完成，给完整奖励
+        addPoints(Math.ceil(actualMinutes * 2));
+        speakText('太棒了！' + (task.title) + '完成！');
+      } else {
+        // 提前完成，也给奖励（按实际用时计算）
+        addPoints(Math.ceil(actualMinutes * 2));
+        speakText('提前完成！' + (task.title) + '太棒了！');
+      }
       
       // 震动反馈
       if (appData.settings.vibrate && navigator.vibrate) {
@@ -5583,6 +5652,11 @@
       if (morningSessionState.timer) {
         clearInterval(morningSessionState.timer);
         morningSessionState.timer = null;
+      }
+      
+      // 计时结束后跳过，不给积分
+      if (morningSessionState.timerEnded) {
+        speakText('好的，稍后再确认。');
       }
       
       morningSessionState.currentIndex++;
