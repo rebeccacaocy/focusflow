@@ -1107,6 +1107,27 @@
         font-size: 160px !important;
       }
     }
+
+    /* ========== 专注锁定视图样式 ========== */
+    #focusLockView {
+      background: linear-gradient(180deg, var(--bg) 0%, #1a1a2e 100%);
+    }
+    #focusLockView #lockCurrentTime {
+      font-size: 36px;
+      opacity: 0.7;
+    }
+    #focusLockView #lockTimerDisplay {
+      font-size: 180px;
+      text-shadow: 0 0 60px rgba(99, 102, 241, 0.3);
+    }
+    @media only screen and (min-width: 768px) {
+      #focusLockView #lockTimerDisplay {
+        font-size: 280px;
+      }
+      #focusLockView #lockCurrentTime {
+        font-size: 48px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1194,8 +1215,31 @@
             </button>
           </div>
           
-          <div style="text-align:center;margin-top:20px;">
-            <button class="btn btn-text" style="color:var(--text-secondary);font-size:12px;" onclick="quitTaskFocus()">退出专注</button>
+          <div style="text-align:center;margin-top:20px;display:flex;gap:16px;justify-content:center;">
+            <button class="btn btn-text" style="color:var(--primary);font-size:13px;" onclick="enterFocusLock()">🔒 锁定模式</button>
+            <button class="btn btn-text" style="color:var(--text-secondary);font-size:13px;" onclick="quitTaskFocus()">退出</button>
+          </div>
+        </div>
+        
+        <!-- 专注锁定视图 - 息屏友好 -->
+        <div id="focusLockView" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;text-align:center;padding:40px 20px;">
+          <div style="position:absolute;top:30px;right:30px;">
+            <button onclick="exitFocusLock()" style="background:none;border:none;font-size:24px;cursor:pointer;padding:10px;">✕</button>
+          </div>
+          <div style="margin-top:60px;">
+            <div id="lockCurrentTime" style="font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--text-secondary);margin-bottom:8px;">--:--</div>
+            <div id="lockTaskName" style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:40px;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">任务名称</div>
+          </div>
+          <div style="margin:80px 0;">
+            <div id="lockTimerDisplay" style="font-family:'JetBrains Mono',monospace;font-size:120px;font-weight:700;color:var(--primary);line-height:1;">25:00</div>
+            <div id="lockTimerLabel" style="font-size:16px;color:var(--text-secondary);margin-top:16px;">专注时间</div>
+            <div id="lockOvertimeDisplay" style="font-size:18px;color:var(--accent);margin-top:12px;display:none;">⏰ 已超时 <span id="lockOvertimeValue">00:00</span></div>
+          </div>
+          <div style="position:absolute;bottom:60px;left:0;right:0;padding:0 40px;">
+            <div style="display:flex;justify-content:center;gap:20px;">
+              <button onclick="toggleFocusLockPlayPause()" style="width:64px;height:64px;border-radius:50%;border:none;background:var(--primary);color:white;font-size:28px;cursor:pointer;">⏸</button>
+              <button onclick="completeFocusLock()" style="width:64px;height:64px;border-radius:50%;border:none;background:var(--success);color:white;font-size:28px;cursor:pointer;">✓</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2639,7 +2683,7 @@
       
       // 语音播报开始
       if (appData.settings.voice) {
-        speak(`开始专注！${task.title}，相信自己！`);
+        speakText(`开始专注！${task.title}，相信自己！`);
       }
       
       // 更新按钮状态
@@ -2666,8 +2710,10 @@
     
     // 更新大数字计时器显示
     function updateBigTimerDisplay() {
-      const minutes = Math.floor(timerState.remaining / 60);
-      const seconds = timerState.remaining % 60;
+      const remaining = timerState.remaining;
+      // 处理负数情况：分钟显示0而不是负数
+      const minutes = remaining < 0 ? 0 : Math.floor(remaining / 60);
+      const seconds = remaining < 0 ? Math.abs(remaining % 60) : remaining % 60;
       document.getElementById('bigTimerDisplay').textContent = 
         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
       
@@ -2686,6 +2732,25 @@
           `${String(oMinutes).padStart(2, '0')}:${String(oSeconds).padStart(2, '0')}`;
       } else {
         overtimeDisplay.style.display = 'none';
+      }
+      
+      // 同步更新锁定视图（如果正在显示）
+      if (document.getElementById('focusLockView').style.display === 'block') {
+        document.getElementById('lockTimerDisplay').textContent = 
+          `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        if (timerState.overtime > 0) {
+          document.getElementById('lockOvertimeDisplay').style.display = 'block';
+          document.getElementById('lockTimerLabel').textContent = '已超时';
+        } else {
+          document.getElementById('lockOvertimeDisplay').style.display = 'none';
+          document.getElementById('lockTimerLabel').textContent = '专注时间';
+        }
+        
+        // 更新时间
+        const now = new Date();
+        document.getElementById('lockCurrentTime').textContent = 
+          `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       }
     }
     
@@ -2737,7 +2802,7 @@
       
       // 语音播报
       if (appData.settings.voice) {
-        speak(`开始专注！${duration}分钟，相信自己！`);
+        speakText(`开始专注！${duration}分钟，相信自己！`);
       }
       
       // 开始计时
@@ -2750,6 +2815,100 @@
         resetTimer();
         showTimerIdleView();
       }
+    }
+    
+    // 进入专注锁定视图
+    function enterFocusLock() {
+      if (!timerState.isRunning) return;
+      
+      document.getElementById('focusLockView').style.display = 'block';
+      
+      // 更新锁定视图内容
+      updateFocusLockDisplay();
+      
+      // 每秒更新时间
+      window.focusLockInterval = setInterval(updateFocusLockDisplay, 1000);
+      
+      // 请求屏幕常亮
+      if (appData.settings.screenWakeLock) {
+        requestWakeLock();
+      }
+    }
+    
+    // 更新锁定视图显示
+    function updateFocusLockDisplay() {
+      // 更新时间
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      document.getElementById('lockCurrentTime').textContent = timeStr;
+      
+      // 更新任务名称
+      if (timerState.linkedTaskId) {
+        const task = appData.tasks.find(t => t.id === timerState.linkedTaskId);
+        if (task) {
+          document.getElementById('lockTaskName').textContent = task.title;
+        }
+      } else {
+        document.getElementById('lockTaskName').textContent = '自由专注';
+      }
+      
+      // 更新计时显示
+      const remaining = timerState.remaining;
+      const minutes = remaining < 0 ? 0 : Math.floor(remaining / 60);
+      const seconds = remaining < 0 ? Math.abs(remaining % 60) : remaining % 60;
+      document.getElementById('lockTimerDisplay').textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      // 更新超时显示
+      if (timerState.overtime > 0) {
+        document.getElementById('lockOvertimeDisplay').style.display = 'block';
+        const oMin = Math.floor(timerState.overtime / 60);
+        const oSec = timerState.overtime % 60;
+        document.getElementById('lockOvertimeValue').textContent = 
+          `${String(oMin).padStart(2, '0')}:${String(oSec).padStart(2, '0')}`;
+        document.getElementById('lockTimerLabel').textContent = '已超时';
+      } else {
+        document.getElementById('lockOvertimeDisplay').style.display = 'none';
+        document.getElementById('lockTimerLabel').textContent = '专注时间';
+      }
+      
+      // 更新播放/暂停按钮
+      const btn = document.querySelector('#focusLockView button:first-of-type + button + div button');
+      // 根据timerState.isRunning更新按钮图标
+    }
+    
+    // 退出锁定视图
+    function exitFocusLock() {
+      document.getElementById('focusLockView').style.display = 'none';
+      if (window.focusLockInterval) {
+        clearInterval(window.focusLockInterval);
+        window.focusLockInterval = null;
+      }
+    }
+    
+    // 锁定视图中的暂停/继续
+    function toggleFocusLockPlayPause() {
+      if (timerState.isRunning) {
+        pauseTimer();
+      } else {
+        resumeTimer();
+      }
+      // 更新锁定视图按钮
+      updateFocusLockButton();
+    }
+    
+    // 更新锁定视图按钮状态
+    function updateFocusLockButton() {
+      const btn = document.querySelector('#focusLockView [onclick="toggleFocusLockPlayPause()"]');
+      if (btn) {
+        btn.textContent = timerState.isRunning ? '⏸' : '▶';
+      }
+    }
+    
+    // 锁定视图中完成任务
+    function completeFocusLock() {
+      exitFocusLock();
+      completeSession();
     }
     
     function toggleTimer() {
