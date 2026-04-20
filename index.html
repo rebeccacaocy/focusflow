@@ -1211,11 +1211,44 @@
         </div>
       </div>
       
+      <!-- 任务管理区域（可展开） -->
+      <div class="card" style="margin-bottom:16px;">
+        <!-- 任务管理头部 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;" id="taskManagerHeader">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">📋</span>
+            <span style="font-weight:700;font-size:16px;">我的任务</span>
+            <span style="font-size:12px;color:var(--text-secondary);" id="taskCountBadge">0个任务</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary" style="padding:8px 16px;font-size:13px;" onclick="openTaskModal()">+ 添加</button>
+            <button class="btn btn-text" style="padding:8px 12px;" onclick="toggleTaskList()" id="toggleTaskListBtn">▼</button>
+          </div>
+        </div>
+        
+        <!-- 任务筛选 -->
+        <div class="task-filters" id="taskFiltersPanel" style="display:none;margin-bottom:12px;">
+          <button class="filter-chip active" data-filter="all" onclick="setTimerPageTaskFilter('all')">全部</button>
+          <button class="filter-chip" data-filter="active" onclick="setTimerPageTaskFilter('active')">进行中</button>
+          <button class="filter-chip" data-filter="completed" onclick="setTimerPageTaskFilter('completed')">已完成</button>
+        </div>
+        
+        <!-- 任务列表（可展开） -->
+        <div id="expandedTaskList" style="display:none;">
+          <div class="task-list" id="timerPageTaskList"></div>
+          <div class="empty-state" id="timerPageEmptyTasks" style="display:none">
+            <div class="empty-state-icon">🎯</div>
+            <div class="empty-state-title">还没有任务</div>
+            <p>点击"添加"按钮创建第一个任务</p>
+          </div>
+        </div>
+      </div>
+      
       <!-- 大数字倒计时显示 -->
       <div class="card timer-container" id="timerCard">
         <div id="timerIdleView">
           <div style="text-align:center;margin-bottom:20px;">
-            <div style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;">选择任务开始专注</div>
+            <div style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;" id="timerPageHint">选择任务开始专注，或直接开始自由专注</div>
           </div>
           <div id="quickTaskList" class="quick-task-list"></div>
           <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
@@ -2354,7 +2387,14 @@
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         errorEl.textContent = '';
-        initApp();
+        
+        // 使用 try-catch 确保初始化错误不会阻塞UI
+        try {
+          initApp();
+        } catch (e) {
+          console.error('Init error:', e);
+          showToast('应用已启动，部分功能可能需要刷新', 'warning');
+        }
       } else {
         errorEl.textContent = '密码错误，请重试';
         document.getElementById('authInput').value = '';
@@ -2662,6 +2702,9 @@
       initBackgroundAudio();
       initChimeSystem();
       
+      // 更新计时页面的任务列表
+      updateTimerPageTasks();
+      
       // 尝试获取天气
       if (appData.settings.weatherEnabled) {
         fetchWeather(appData.settings.weatherCity || '北京');
@@ -2782,7 +2825,7 @@
           <div style="text-align:center;padding:30px 0;color:var(--text-secondary);">
             <div style="font-size:36px;margin-bottom:12px;">📋</div>
             <div style="font-size:14px;">还没有任务</div>
-            <div style="font-size:12px;margin-top:4px;">去任务页添加一个吧</div>
+            <div style="font-size:12px;margin-top:4px;">点击上方"添加"按钮创建任务</div>
           </div>
         `;
         return;
@@ -2813,6 +2856,113 @@
           </div>
         `;
       }).join('');
+    }
+    
+    // ==================== 计时页面任务列表展开/收起 ====================
+    let taskListExpanded = false;
+    let currentTaskFilter = 'all';
+    
+    function toggleTaskList() {
+      taskListExpanded = !taskListExpanded;
+      const expandedList = document.getElementById('expandedTaskList');
+      const filtersPanel = document.getElementById('taskFiltersPanel');
+      const toggleBtn = document.getElementById('toggleTaskListBtn');
+      
+      if (taskListExpanded) {
+        expandedList.style.display = 'block';
+        filtersPanel.style.display = 'flex';
+        toggleBtn.textContent = '▲';
+        renderTimerPageTaskList();
+      } else {
+        expandedList.style.display = 'none';
+        filtersPanel.style.display = 'none';
+        toggleBtn.textContent = '▼';
+      }
+    }
+    
+    // 计时页面的筛选函数
+    function setTimerPageTaskFilter(filter) {
+      currentTaskFilter = filter;
+      // 更新计时页面筛选按钮状态
+      document.querySelectorAll('#taskFiltersPanel .filter-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.filter === filter);
+      });
+      renderTimerPageTaskList();
+    }
+    
+    function renderTimerPageTaskList() {
+      const container = document.getElementById('timerPageTaskList');
+      const emptyState = document.getElementById('timerPageEmptyTasks');
+      const hintText = document.getElementById('timerPageHint');
+      if (!container) return;
+      
+      // 筛选任务
+      let filteredTasks = appData.tasks;
+      if (currentTaskFilter === 'active') {
+        filteredTasks = appData.tasks.filter(t => t.status !== 'completed');
+      } else if (currentTaskFilter === 'completed') {
+        filteredTasks = appData.tasks.filter(t => t.status === 'completed');
+      }
+      
+      // 更新任务数量
+      const activeCount = appData.tasks.filter(t => t.status !== 'completed').length;
+      document.getElementById('taskCountBadge').textContent = `${activeCount}个任务`;
+      
+      if (filteredTasks.length === 0) {
+        container.innerHTML = '';
+        emptyState.style.display = 'block';
+        hintText.textContent = '选择任务开始专注，或直接开始自由专注';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      
+      // 按紧急程度和重要程度排序
+      const sortedTasks = [...filteredTasks].sort((a, b) => {
+        if (a.status === 'completed' && b.status !== 'completed') return 1;
+        if (b.status === 'completed' && a.status !== 'completed') return -1;
+        if (a.urgency === 'urgent' && b.urgency !== 'urgent') return -1;
+        if (b.urgency === 'urgent' && a.urgency !== 'urgent') return 1;
+        return b.importance - a.importance;
+      });
+      
+      container.innerHTML = sortedTasks.map(task => {
+        const isCompleted = task.status === 'completed';
+        const urgencyClass = task.urgency === 'urgent' ? 'urgent' : 'normal';
+        const urgencyText = task.urgency === 'urgent' ? '紧急' : '普通';
+        const importanceStars = '⭐'.repeat(task.importance || 1);
+        
+        return `
+          <div class="task-item ${isCompleted ? 'completed' : ''}" onclick="${isCompleted ? '' : `startTaskFocus('${task.id}')`}">
+            <div class="task-icon">${getCategoryEmoji(task.category)}</div>
+            <div class="task-content">
+              <div class="task-title">${task.title}</div>
+              <div class="task-meta">
+                <span class="urgency-tag ${urgencyClass}">${urgencyText}</span>
+                <span>⏱ ${task.duration}分钟</span>
+                <span>${importanceStars}</span>
+                ${isCompleted ? '<span style="color:#10B981;">✓ 已完成</span>' : `<span style="color:var(--accent);">+${getTaskReward(task.importance)}分</span>`}
+              </div>
+            </div>
+            <div class="task-actions" onclick="event.stopPropagation()">
+              ${!isCompleted ? `<button class="btn btn-icon btn-sm btn-primary" onclick="startTaskFocus('${task.id}')" title="开始">▶</button>` : ''}
+              <button class="btn btn-icon btn-sm btn-secondary" onclick="openTaskModal('${task.id}')" title="编辑">✎</button>
+              <button class="btn btn-icon btn-sm btn-danger" onclick="deleteTask('${task.id}')" title="删除">×</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 更新计时页面的任务数量和快速列表
+    function updateTimerPageTasks() {
+      renderQuickTaskList();
+      if (taskListExpanded) {
+        renderTimerPageTaskList();
+      } else {
+        const activeCount = appData.tasks.filter(t => t.status !== 'completed').length;
+        document.getElementById('taskCountBadge').textContent = `${activeCount}个任务`;
+      }
     }
     
     // 开始任务专注
@@ -3978,6 +4128,8 @@
       saveData();
       renderTasks();
       updateTaskPicker();
+      // 更新计时页面的任务列表
+      updateTimerPageTasks();
       // 立即关闭弹窗
       closeTaskModal();
     }
@@ -4061,6 +4213,7 @@
         saveData();
         renderTasks();
         updateTaskPicker();
+        updateTimerPageTasks(); // 同时更新计时页面的任务列表
         showToast('任务已删除', '');
       }
     }
@@ -5450,7 +5603,7 @@
       } else if (tabName === 'emotion') {
         updateEmotionPage();
       } else if (tabName === 'timer') {
-        renderQuickTaskList();
+        updateTimerPageTasks(); // 同时更新计时页面的任务列表
       }
 
       if (tabName === 'achievements') {
@@ -6428,9 +6581,19 @@
 
     // ==================== 天气预报系统 ====================
     async function fetchWeather(city = '北京') {
-      // 使用 wttr.in API（免费无需key）
+      // 使用 wttr.in API（免费无需key）+ CORS代理
+      const CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
       try {
-        const response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+        // 先尝试直接访问，失败则使用代理
+        let response;
+        try {
+          response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+        } catch (e) {
+          // 使用CORS代理
+          response = await fetch(`${CORS_PROXY}${encodeURIComponent(`https://wttr.in/${encodeURIComponent(city)}?format=j1`)}`);
+        }
+        
+        if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         
         if (data && data.current_condition && data.current_condition[0]) {
