@@ -1097,35 +1097,45 @@
       }
     }
 
-    /* ========== iPad 横屏适配 ========== */
+    /* ========== iPad 横屏适配 - 最大化显示 ========== */
     @media only screen and (min-width: 768px) and (orientation: landscape) {
       .app {
         padding-left: 48px;
         padding-right: 48px;
       }
-      .timer-display {
-        font-size: 160px !important;
+      /* 计时运行视图的大数字 */
+      #timerRunningView #bigTimerDisplay {
+        font-size: clamp(100px, 15vw, 180px) !important;
       }
-    }
-
-    /* ========== 专注锁定视图样式 ========== */
-    #focusLockView {
-      background: linear-gradient(180deg, var(--bg) 0%, #1a1a2e 100%);
-    }
-    #focusLockView #lockCurrentTime {
-      font-size: 36px;
-      opacity: 0.7;
-    }
-    #focusLockView #lockTimerDisplay {
-      font-size: 180px;
-      text-shadow: 0 0 60px rgba(99, 102, 241, 0.3);
-    }
-    @media only screen and (min-width: 768px) {
+      #timerRunningView .timer-controls {
+        margin-top: 40px;
+      }
+      #timerRunningView .timer-controls .btn-icon {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+      }
+      #timerRunningView #runningTaskName {
+        font-size: 28px !important;
+      }
+      #timerRunningView #currentTaskInfo {
+        margin-bottom: 30px;
+      }
+      #timerRunningView #currentTaskInfo > div:first-child {
+        font-size: 18px !important;
+      }
+      /* 锁定视图横屏优化 */
       #focusLockView #lockTimerDisplay {
-        font-size: 280px;
+        font-size: clamp(150px, 25vw, 350px) !important;
       }
       #focusLockView #lockCurrentTime {
-        font-size: 48px;
+        font-size: clamp(36px, 6vw, 64px) !important;
+      }
+      #focusLockView #lockTaskName {
+        font-size: clamp(28px, 4vw, 48px) !important;
+      }
+      #focusLockView #lockOvertimeDisplay {
+        top: calc(50% + 180px) !important;
       }
     }
   </style>
@@ -1222,24 +1232,35 @@
         </div>
         
         <!-- 专注锁定视图 - 息屏友好 -->
-        <div id="focusLockView" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;text-align:center;padding:40px 20px;">
-          <div style="position:absolute;top:30px;right:30px;">
-            <button onclick="exitFocusLock()" style="background:none;border:none;font-size:24px;cursor:pointer;padding:10px;">✕</button>
+        <div id="focusLockView" style="display:none;position:fixed;inset:0;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 100%);z-index:9000;">
+          <!-- 右上角关闭按钮 -->
+          <button onclick="exitFocusLock()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:50px;height:50px;color:white;font-size:24px;cursor:pointer;z-index:10;">✕</button>
+          
+          <!-- 顶部：当前时间 -->
+          <div style="position:absolute;top:30px;left:0;right:0;text-align:center;">
+            <div id="lockCurrentTime" style="font-family:'JetBrains Mono',monospace;font-size:32px;color:rgba(255,255,255,0.6);">--:--</div>
           </div>
-          <div style="margin-top:60px;">
-            <div id="lockCurrentTime" style="font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--text-secondary);margin-bottom:8px;">--:--</div>
-            <div id="lockTaskName" style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:40px;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">任务名称</div>
+          
+          <!-- 中间：任务名 -->
+          <div style="position:absolute;top:15%;left:0;right:0;text-align:center;padding:0 60px;">
+            <div id="lockTaskName" style="font-size:clamp(20px,4vw,36px);font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">任务名称</div>
           </div>
-          <div style="margin:80px 0;">
-            <div id="lockTimerDisplay" style="font-family:'JetBrains Mono',monospace;font-size:120px;font-weight:700;color:var(--primary);line-height:1;">25:00</div>
-            <div id="lockTimerLabel" style="font-size:16px;color:var(--text-secondary);margin-top:16px;">专注时间</div>
-            <div id="lockOvertimeDisplay" style="font-size:18px;color:var(--accent);margin-top:12px;display:none;">⏰ 已超时 <span id="lockOvertimeValue">00:00</span></div>
+          
+          <!-- 正中间：倒计时数字 -->
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:800px;">
+            <div id="lockTimerDisplay" style="font-family:'JetBrains Mono',monospace;font-size:clamp(80px,20vw,200px);font-weight:700;color:#6366F1;text-shadow:0 0 60px rgba(99,102,241,0.5);line-height:1;text-align:center;">25:00</div>
+            <div id="lockTimerLabel" style="font-size:clamp(16px,3vw,28px);color:rgba(255,255,255,0.5);margin-top:16px;text-align:center;">专注时间</div>
           </div>
-          <div style="position:absolute;bottom:60px;left:0;right:0;padding:0 40px;">
-            <div style="display:flex;justify-content:center;gap:20px;">
-              <button onclick="toggleFocusLockPlayPause()" style="width:64px;height:64px;border-radius:50%;border:none;background:var(--primary);color:white;font-size:28px;cursor:pointer;">⏸</button>
-              <button onclick="completeFocusLock()" style="width:64px;height:64px;border-radius:50%;border:none;background:var(--success);color:white;font-size:28px;cursor:pointer;">✓</button>
-            </div>
+          
+          <!-- 超时显示 -->
+          <div id="lockOvertimeDisplay" style="position:absolute;top:calc(50% + 120px);left:0;right:0;text-align:center;display:none;">
+            <div style="font-size:clamp(18px,4vw,32px);color:#F59E0B;font-weight:600;">⏰ 已超时 <span id="lockOvertimeValue" style="font-family:'JetBrains Mono',monospace;">00:00</span></div>
+          </div>
+          
+          <!-- 底部：控制按钮 -->
+          <div style="position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center;gap:30px;">
+            <button onclick="toggleFocusLockPlayPause()" style="width:70px;height:70px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:white;font-size:30px;cursor:pointer;">⏸</button>
+            <button onclick="completeFocusLock()" style="width:70px;height:70px;border-radius:50%;border:none;background:#10B981;color:white;font-size:30px;cursor:pointer;">✓</button>
           </div>
         </div>
       </div>
@@ -2899,9 +2920,9 @@
     
     // 更新锁定视图按钮状态
     function updateFocusLockButton() {
-      const btn = document.querySelector('#focusLockView [onclick="toggleFocusLockPlayPause()"]');
-      if (btn) {
-        btn.textContent = timerState.isRunning ? '⏸' : '▶';
+      const btns = document.querySelectorAll('#focusLockView > div:last-child button');
+      if (btns && btns[0]) {
+        btns[0].textContent = timerState.isRunning ? '⏸' : '▶';
       }
     }
     
@@ -2989,9 +3010,14 @@
         timerState.overtime = elapsed - taskDuration;
         showToast('⏰ 时间到！' + getRandomEncouragement('timeUp'), 'reward');
         
-        // 如果是任务计时模式，不调用onTimerComplete（任务完成时统一给积分）
-        // 否则给番茄钟积分
-        if (!timerState.linkedTaskId) {
+        // 任务计时模式：自动调用completeSession完成计时、更新状态、给积分
+        if (timerState.linkedTaskId) {
+          // 延迟一点执行，让声音先播放
+          setTimeout(() => {
+            completeSession();
+          }, 500);
+        } else {
+          // 普通番茄钟模式
           onTimerComplete();
         }
       }
