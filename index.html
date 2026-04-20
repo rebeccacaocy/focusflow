@@ -1268,13 +1268,9 @@
           
           <!-- 正中间：倒计时数字 -->
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:800px;">
+            <div id="lockTimerPrefix" style="font-size:clamp(40px,8vw,80px);color:#F59E0B;text-align:center;display:none;">➕</div>
             <div id="lockTimerDisplay" style="font-family:'JetBrains Mono',monospace;font-size:clamp(80px,20vw,200px);font-weight:700;color:#6366F1;text-shadow:0 0 60px rgba(99,102,241,0.5);line-height:1;text-align:center;">25:00</div>
             <div id="lockTimerLabel" style="font-size:clamp(16px,3vw,28px);color:rgba(255,255,255,0.5);margin-top:16px;text-align:center;">专注时间</div>
-          </div>
-          
-          <!-- 超时显示 -->
-          <div id="lockOvertimeDisplay" style="position:absolute;top:calc(50% + 120px);left:0;right:0;text-align:center;display:none;">
-            <div style="font-size:clamp(18px,4vw,32px);color:#F59E0B;font-weight:600;">⏰ 已超时 <span id="lockOvertimeValue" style="font-family:'JetBrains Mono',monospace;">00:00</span></div>
           </div>
           
           <!-- 底部：控制按钮 -->
@@ -1396,12 +1392,46 @@
             🌅 晨间任务
           </h3>
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="openMorningRoutineModal()">编辑</button>
-            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" onclick="startMorningRoutine()">开始</button>
+            <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="openRoutineModeModal('morning')">编辑</button>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" onclick="startRoutineMode('morning')">开始</button>
           </div>
         </div>
         <p style="font-size:13px;color:var(--text-secondary);">每天早晨按顺序完成，养成好习惯</p>
         <div id="morningRoutinePreview" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+
+      <!-- 任务模式切换 -->
+      <div class="routine-modes-section" style="margin-top:24px;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+          📋 任务模式
+        </h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <div class="routine-mode-card" onclick="startRoutineMode('morning')" style="background:var(--card);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);">
+            <div style="font-size:28px;margin-bottom:6px;">🌅</div>
+            <div style="font-size:13px;font-weight:600;">晨间</div>
+            <div style="font-size:11px;color:var(--text-secondary);" id="morningTaskCount">6项</div>
+          </div>
+          <div class="routine-mode-card" onclick="startRoutineMode('evening')" style="background:var(--card);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);">
+            <div style="font-size:28px;margin-bottom:6px;">🌙</div>
+            <div style="font-size:13px;font-weight:600;">晚间</div>
+            <div style="font-size:11px;color:var(--text-secondary);" id="eveningTaskCount">4项</div>
+          </div>
+          <div class="routine-mode-card" onclick="startRoutineMode('weekend')" style="background:var(--card);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);">
+            <div style="font-size:28px;margin-bottom:6px;">🎉</div>
+            <div style="font-size:13px;font-weight:600;">周末</div>
+            <div style="font-size:11px;color:var(--text-secondary);" id="weekendTaskCount">4项</div>
+          </div>
+          <div class="routine-mode-card" onclick="startRoutineMode('vacation')" style="background:var(--card);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);">
+            <div style="font-size:28px;margin-bottom:6px;">🏖️</div>
+            <div style="font-size:13px;font-weight:600;">假期</div>
+            <div style="font-size:11px;color:var(--text-secondary);" id="vacationTaskCount">3项</div>
+          </div>
+          <div class="routine-mode-card" onclick="openRoutineModeModal('temp')" style="background:var(--card);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);">
+            <div style="font-size:28px;margin-bottom:6px;">📌</div>
+            <div style="font-size:13px;font-weight:600;">临时</div>
+            <div style="font-size:11px;color:var(--text-secondary);" id="tempTaskCount">编辑</div>
+          </div>
+        </div>
       </div>
 
       <!-- 自定义任务清单入口 -->
@@ -2251,6 +2281,7 @@
     <!-- Morning Mode Fullscreen -->
     <div class="modal-overlay" id="morningModeOverlay" style="z-index:2000;background:var(--bg);">
       <div style="text-align:center;padding:40px 20px;height:100vh;display:flex;flex-direction:column;justify-content:center;">
+        <div id="morningModeName" style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;">🌅 晨间模式</div>
         <div id="morningProgress" style="margin-bottom:30px;">
           <span style="font-size:14px;color:var(--text-secondary);">任务进度</span>
           <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;" id="morningProgressDots"></div>
@@ -2390,14 +2421,60 @@
         lastWeatherUpdate: null, // 上次天气更新时间
         cachedWeather: null // 缓存的天气数据
       },
-      morningRoutine: [ // 晨间任务模板
-        { id: 'wake', title: '起床伸懒腰', duration: 1, icon: '🌅', description: '深呼吸三次，迎接新的一天' },
-        { id: 'water', title: '喝一杯温水', duration: 2, icon: '💧', description: '唤醒身体机能' },
-        { id: 'stretch', title: '简单拉伸', duration: 5, icon: '🧘', description: '活动筋骨，预防僵硬' },
-        { id: 'breakfast', title: '吃早餐', duration: 15, icon: '🍳', description: '补充能量，为学习做准备' },
-        { id: 'review', title: '查看今日任务', duration: 3, icon: '📋', description: '明确今日目标' },
-        { id: 'ready', title: '整理出门', duration: 10, icon: '🎒', description: '检查书包，准备出发' }
-      ],
+      // 任务预设模式
+      routineModes: {
+        morning: { // 晨间模式
+          name: '晨间模式',
+          icon: '🌅',
+          startTime: '07:00',
+          tasks: [
+            { id: 'wake', title: '起床伸懒腰', duration: 1, icon: '🌅', description: '深呼吸三次，迎接新的一天' },
+            { id: 'water', title: '喝一杯温水', duration: 2, icon: '💧', description: '唤醒身体机能' },
+            { id: 'stretch', title: '简单拉伸', duration: 5, icon: '🧘', description: '活动筋骨，预防僵硬' },
+            { id: 'breakfast', title: '吃早餐', duration: 15, icon: '🍳', description: '补充能量，为学习做准备' },
+            { id: 'review', title: '查看今日任务', duration: 3, icon: '📋', description: '明确今日目标' },
+            { id: 'ready', title: '整理出门', duration: 10, icon: '🎒', description: '检查书包，准备出发' }
+          ]
+        },
+        evening: { // 晚间模式
+          name: '晚间模式',
+          icon: '🌙',
+          startTime: '21:00',
+          tasks: [
+            { id: 'review', title: '回顾今日任务', duration: 5, icon: '📋', description: '检查完成情况' },
+            { id: 'prepare', title: '准备明天物品', duration: 5, icon: '🎒', description: '整理书包和衣物' },
+            { id: 'relax', title: '放松活动', duration: 10, icon: '🧘', description: '听音乐或阅读' },
+            { id: 'sleep', title: '准备睡觉', duration: 10, icon: '😴', description: '洗漱，准备入睡' }
+          ]
+        },
+        weekend: { // 周末模式
+          name: '周末模式',
+          icon: '🎉',
+          startTime: '09:00',
+          tasks: [
+            { id: 'sleep', title: '睡到自然醒', duration: 30, icon: '😴', description: '充足睡眠' },
+            { id: 'exercise', title: '晨间运动', duration: 30, icon: '🏃', description: '跑步或健身' },
+            { id: 'hobby', title: '兴趣爱好', duration: 60, icon: '🎨', description: '画画、乐器等' },
+            { id: 'family', title: '家庭时间', duration: 60, icon: '👨‍👩‍👧', description: '陪伴家人' }
+          ]
+        },
+        vacation: { // 假期模式
+          name: '假期模式',
+          icon: '🏖️',
+          startTime: '10:00',
+          tasks: [
+            { id: 'travel', title: '旅行/探索', duration: 120, icon: '✈️', description: '探索新地方' },
+            { id: 'rest', title: '充分休息', duration: 60, icon: '🏖️', description: '放松身心' },
+            { id: 'learn', title: '学习新技能', duration: 60, icon: '📚', description: '自学感兴趣的' }
+          ]
+        },
+        temp: { // 临时模式
+          name: '临时模式',
+          icon: '📌',
+          startTime: '',
+          tasks: []
+        }
+      },
       customList: [], // 自定义任务清单
       emotionLogs: [], // 情绪记录
       customEmotions: [], // 自定义情绪
@@ -2618,6 +2695,37 @@
             streakThreshold: 30
           };
         }
+        // Ensure routineModes exists with default data
+        if (!appData.routineModes) {
+          appData.routineModes = {
+            morning: { name: '晨间模式', icon: '🌅', startTime: '07:00', tasks: [
+              { id: 'wake', title: '起床伸懒腰', duration: 1, icon: '🌅', description: '深呼吸三次，迎接新的一天' },
+              { id: 'water', title: '喝一杯温水', duration: 2, icon: '💧', description: '唤醒身体机能' },
+              { id: 'stretch', title: '简单拉伸', duration: 5, icon: '🧘', description: '活动筋骨，预防僵硬' },
+              { id: 'breakfast', title: '吃早餐', duration: 15, icon: '🍳', description: '补充能量，为学习做准备' },
+              { id: 'review', title: '查看今日任务', duration: 3, icon: '📋', description: '明确今日目标' },
+              { id: 'ready', title: '整理出门', duration: 10, icon: '🎒', description: '检查书包，准备出发' }
+            ]},
+            evening: { name: '晚间模式', icon: '🌙', startTime: '21:00', tasks: [
+              { id: 'review', title: '回顾今日任务', duration: 5, icon: '📋', description: '检查完成情况' },
+              { id: 'prepare', title: '准备明天物品', duration: 5, icon: '🎒', description: '整理书包和衣物' },
+              { id: 'relax', title: '放松活动', duration: 10, icon: '🧘', description: '听音乐或阅读' },
+              { id: 'sleep', title: '准备睡觉', duration: 10, icon: '😴', description: '洗漱，准备入睡' }
+            ]},
+            weekend: { name: '周末模式', icon: '🎉', startTime: '09:00', tasks: [
+              { id: 'sleep', title: '睡到自然醒', duration: 30, icon: '😴', description: '充足睡眠' },
+              { id: 'exercise', title: '晨间运动', duration: 30, icon: '🏃', description: '跑步或健身' },
+              { id: 'hobby', title: '兴趣爱好', duration: 60, icon: '🎨', description: '画画、乐器等' },
+              { id: 'family', title: '家庭时间', duration: 60, icon: '👨‍👩‍👧', description: '陪伴家人' }
+            ]},
+            vacation: { name: '假期模式', icon: '🏖️', startTime: '10:00', tasks: [
+              { id: 'travel', title: '旅行/探索', duration: 120, icon: '✈️', description: '探索新地方' },
+              { id: 'rest', title: '充分休息', duration: 60, icon: '🏖️', description: '放松身心' },
+              { id: 'learn', title: '学习新技能', duration: 60, icon: '📚', description: '自学感兴趣的' }
+            ]},
+            temp: { name: '临时模式', icon: '📌', startTime: '', tasks: [] }
+          };
+        }
       }
     }
 
@@ -2786,11 +2894,13 @@
           `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         
         if (timerState.overtime > 0) {
-          document.getElementById('lockOvertimeDisplay').style.display = 'block';
+          document.getElementById('lockTimerPrefix').style.display = 'block';
           document.getElementById('lockTimerLabel').textContent = '已超时';
+          document.getElementById('lockTimerDisplay').style.color = '#F59E0B';
         } else {
-          document.getElementById('lockOvertimeDisplay').style.display = 'none';
+          document.getElementById('lockTimerPrefix').style.display = 'none';
           document.getElementById('lockTimerLabel').textContent = '专注时间';
+          document.getElementById('lockTimerDisplay').style.color = '#6366F1';
         }
         
         // 更新时间
@@ -2865,7 +2975,7 @@
     
     // 进入专注锁定视图
     function enterFocusLock() {
-      if (!timerState.isRunning) return;
+      // 不再检查timerState.isRunning，允许无任务时进入锁定模式
       
       document.getElementById('focusLockView').style.display = 'block';
       
@@ -2873,6 +2983,9 @@
       updateFocusLockDisplay();
       
       // 每秒更新时间
+      if (window.focusLockInterval) {
+        clearInterval(window.focusLockInterval);
+      }
       window.focusLockInterval = setInterval(updateFocusLockDisplay, 1000);
       
       // 请求屏幕常亮
@@ -2889,38 +3002,57 @@
       document.getElementById('lockCurrentTime').textContent = timeStr;
       
       // 更新任务名称
-      if (timerState.linkedTaskId) {
+      if (timerState.isRunning && timerState.linkedTaskId) {
         const task = appData.tasks.find(t => t.id === timerState.linkedTaskId);
         if (task) {
           document.getElementById('lockTaskName').textContent = task.title;
+          document.getElementById('lockTaskName').style.display = 'block';
         }
+      } else if (timerState.isRunning) {
+        document.getElementById('lockTaskName').textContent = '🍅 自由专注';
+        document.getElementById('lockTaskName').style.display = 'block';
       } else {
-        document.getElementById('lockTaskName').textContent = '自由专注';
+        // 无计时运行，显示提示
+        document.getElementById('lockTaskName').textContent = '📋 任务列表';
+        document.getElementById('lockTaskName').style.display = 'block';
       }
       
       // 更新计时显示
-      const remaining = timerState.remaining;
-      const minutes = remaining < 0 ? 0 : Math.floor(remaining / 60);
-      const seconds = remaining < 0 ? Math.abs(remaining % 60) : remaining % 60;
-      document.getElementById('lockTimerDisplay').textContent = 
-        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      
-      // 更新超时显示
-      if (timerState.overtime > 0) {
-        document.getElementById('lockOvertimeDisplay').style.display = 'block';
-        const oMin = Math.floor(timerState.overtime / 60);
-        const oSec = timerState.overtime % 60;
-        document.getElementById('lockOvertimeValue').textContent = 
-          `${String(oMin).padStart(2, '0')}:${String(oSec).padStart(2, '0')}`;
-        document.getElementById('lockTimerLabel').textContent = '已超时';
+      if (timerState.isRunning) {
+        const remaining = timerState.remaining;
+        const minutes = remaining < 0 ? 0 : Math.floor(remaining / 60);
+        const seconds = remaining < 0 ? Math.abs(remaining % 60) : remaining % 60;
+        document.getElementById('lockTimerDisplay').textContent = 
+          `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        document.getElementById('lockTimerDisplay').style.display = 'block';
+        
+        // 更新超时显示
+        if (timerState.overtime > 0) {
+          document.getElementById('lockTimerPrefix').style.display = 'block';
+          document.getElementById('lockTimerLabel').textContent = '已超时';
+          document.getElementById('lockTimerDisplay').style.color = '#F59E0B';
+        } else {
+          document.getElementById('lockTimerPrefix').style.display = 'none';
+          document.getElementById('lockTimerLabel').textContent = '专注时间';
+          document.getElementById('lockTimerDisplay').style.color = '#6366F1';
+        }
+        
+        // 显示完成按钮
+        document.querySelectorAll('#focusLockView > div:last-child button').forEach(btn => {
+          btn.style.display = '';
+        });
       } else {
-        document.getElementById('lockOvertimeDisplay').style.display = 'none';
-        document.getElementById('lockTimerLabel').textContent = '专注时间';
+        // 无计时运行，显示当前时间和提示
+        document.getElementById('lockTimerDisplay').textContent = timeStr;
+        document.getElementById('lockTimerDisplay').style.color = 'rgba(255,255,255,0.3)';
+        document.getElementById('lockTimerPrefix').style.display = 'none';
+        document.getElementById('lockTimerLabel').textContent = '当前时间';
+        
+        // 隐藏完成按钮
+        document.querySelectorAll('#focusLockView > div:last-child button').forEach(btn => {
+          btn.style.display = 'none';
+        });
       }
-      
-      // 更新播放/暂停按钮
-      const btn = document.querySelector('#focusLockView button:first-of-type + button + div button');
-      // 根据timerState.isRunning更新按钮图标
     }
     
     // 退出锁定视图
@@ -3085,6 +3217,14 @@
           speakTimeUp(); // 语音播报
           timerState.overtime = elapsed - taskDuration;
           showToast('⏰ 时间到！' + getRandomEncouragement('timeUp'), 'reward');
+          
+          // 任务计时模式：自动调用completeSession完成计时、更新状态、给积分
+          if (timerState.linkedTaskId) {
+            // 延迟一点执行，让声音先播放
+            setTimeout(() => {
+              completeSession();
+            }, 500);
+          }
         }
 
         // 如果超时了，remaining变为负数
@@ -3701,19 +3841,38 @@
       const container = document.getElementById('morningRoutinePreview');
       if (!container) return;
       
-      if (!appData.morningRoutine || appData.morningRoutine.length === 0) {
+      const tasks = appData.routineModes?.morning?.tasks || [];
+      
+      if (!tasks || tasks.length === 0) {
         container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">点击"编辑"添加晨间任务</p>';
         return;
       }
       
       // 使用简单的列表形式，不显示时间
-      container.innerHTML = appData.morningRoutine.map(task => `
+      container.innerHTML = tasks.map(task => `
         <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">
           <span style="font-size:18px;">${task.icon}</span>
           <span style="flex:1;">${task.title}</span>
           <div style="width:20px;height:20px;border:2px solid var(--border);border-radius:4px;"></div>
         </div>
       `).join('');
+    }
+    
+    // 渲染各模式的任务数量
+    function renderRoutineModePreview() {
+      const modes = ['morning', 'evening', 'weekend', 'vacation', 'temp'];
+      modes.forEach(mode => {
+        const countEl = document.getElementById(`${mode}TaskCount`);
+        if (countEl) {
+          const tasks = appData.routineModes?.[mode]?.tasks || [];
+          if (mode === 'temp') {
+            countEl.textContent = tasks.length > 0 ? `${tasks.length}项` : '编辑';
+          } else {
+            countEl.textContent = `${tasks.length}项`;
+          }
+        }
+      });
+    }
     }
 
     function getTaskReward(importance) {
@@ -5285,6 +5444,7 @@
 
       if (tabName === 'tasks') {
         renderMorningRoutinePreview();
+        renderRoutineModePreview();
         renderCustomListPreview();
         renderEmotionPreview();
       } else if (tabName === 'emotion') {
@@ -5307,34 +5467,52 @@
       }
     }
 
-    // ==================== Morning Routine Functions ====================
+    // ==================== Routine Mode Functions ====================
     let editingMorningTaskIndex = -1;
+    let editingRoutineMode = 'morning'; // 当前编辑的模式
     let morningSessionState = {
       isActive: false,
       currentIndex: 0,
       tasks: [],
       timer: null,
       remaining: 0,
-      timerEnded: false // 标记计时是否已结束，需要用户确认
+      timerEnded: false, // 标记计时是否已结束，需要用户确认
+      modeName: '任务'
     };
 
-    function openMorningRoutineModal() {
-      renderMorningRoutineList();
+    // 打开模式编辑弹窗
+    function openRoutineModeModal(mode) {
+      editingRoutineMode = mode || 'morning';
+      const routineMode = appData.routineModes[editingRoutineMode];
+      
+      // 更新弹窗标题
+      const modalTitle = document.getElementById('morningRoutineModal').querySelector('.modal-title');
+      modalTitle.innerHTML = `${routineMode.icon || '📋'} 编辑${routineMode.name || '任务'}`;
+      
+      renderRoutineModeList();
       document.getElementById('morningRoutineModal').classList.add('active');
+    }
+    
+    // 兼容旧的晨间模式弹窗
+    function openMorningRoutineModal() {
+      openRoutineModeModal('morning');
     }
 
     function closeMorningRoutineModal() {
       document.getElementById('morningRoutineModal').classList.remove('active');
     }
 
-    function renderMorningRoutineList() {
+    function renderRoutineModeList() {
       const container = document.getElementById('morningRoutineList');
-      if (!appData.morningRoutine || appData.morningRoutine.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">还没有晨间任务，点击下方添加</p>';
+      const routineMode = appData.routineModes[editingRoutineMode];
+      const tasks = routineMode ? routineMode.tasks : [];
+      
+      if (!tasks || tasks.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">还没有任务，点击下方添加</p>';
         return;
       }
       
-      container.innerHTML = appData.morningRoutine.map((task, index) => `
+      container.innerHTML = tasks.map((task, index) => `
         <div class="morning-task-item" data-morning-index="${index}" draggable="true">
           <div class="morning-drag-handle" ontouchstart="startMorningDrag(${index}, event)" onmousedown="startMorningDrag(${index}, event)">⋮⋮</div>
           <div class="morning-task-content" onclick="editMorningTask(${index})">
@@ -5347,6 +5525,11 @@
           <span style="color:var(--text-secondary);">›</span>
         </div>
       `).join('');
+    }
+    
+    // 兼容旧的渲染函数
+    function renderMorningRoutineList() {
+      renderRoutineModeList();
     }
 
     // 晨间任务拖拽排序
@@ -5401,15 +5584,18 @@
         morningDraggedElement.classList.remove('morning-dragging');
       }
       
-      // 执行排序
+      // 执行排序（使用当前编辑的模式）
       if (morningDragOverIndex !== -1 && morningDragOverIndex !== morningDragIndex) {
-        const tasks = [...appData.morningRoutine];
-        const [removed] = tasks.splice(morningDragIndex, 1);
-        tasks.splice(morningDragOverIndex, 0, removed);
-        appData.morningRoutine = tasks;
-        saveData();
-        renderMorningRoutineList();
-        renderMorningRoutinePreview();
+        const routineMode = appData.routineModes[editingRoutineMode];
+        if (routineMode) {
+          const tasks = [...routineMode.tasks];
+          const [removed] = tasks.splice(morningDragIndex, 1);
+          tasks.splice(morningDragOverIndex, 0, removed);
+          routineMode.tasks = tasks;
+          saveData();
+          renderRoutineModeList();
+          renderRoutineModePreview();
+        }
       }
       
       document.querySelectorAll('.morning-task-item').forEach(item => {
@@ -5423,16 +5609,18 @@
 
     function addMorningTask() {
       editingMorningTaskIndex = -1;
-      document.getElementById('morningTaskEditTitle').textContent = '添加晨间任务';
+      const routineMode = appData.routineModes[editingRoutineMode];
+      const modeNames = { morning: '晨间', evening: '晚间', weekend: '周末', vacation: '假期', temp: '临时' };
+      document.getElementById('morningTaskEditTitle').textContent = `添加${modeNames[editingRoutineMode] || ''}任务`;
       document.getElementById('morningTaskTitle').value = '';
       document.getElementById('morningTaskDuration').value = 5;
       document.getElementById('morningTaskDesc').value = '';
-      document.getElementById('morningTaskIcon').value = '🌅';
+      document.getElementById('morningTaskIcon').value = routineMode?.icon || '📋';
       document.getElementById('deleteMorningTaskBtn').style.display = 'none';
       // Reset icon selection
       document.querySelectorAll('[data-icon]').forEach(btn => {
         btn.classList.remove('selected');
-        if (btn.getAttribute('data-icon') === '🌅') btn.classList.add('selected');
+        if (btn.getAttribute('data-icon') === (routineMode?.icon || '📋')) btn.classList.add('selected');
       });
       closeMorningRoutineModal();
       document.getElementById('morningTaskEditModal').classList.add('active');
@@ -5440,8 +5628,11 @@
 
     function editMorningTask(index) {
       editingMorningTaskIndex = index;
-      const task = appData.morningRoutine[index];
-      document.getElementById('morningTaskEditTitle').textContent = '编辑晨间任务';
+      const routineMode = appData.routineModes[editingRoutineMode];
+      const task = routineMode?.tasks[index];
+      if (!task) return;
+      const modeNames = { morning: '晨间', evening: '晚间', weekend: '周末', vacation: '假期', temp: '临时' };
+      document.getElementById('morningTaskEditTitle').textContent = `编辑${modeNames[editingRoutineMode] || ''}任务`;
       document.getElementById('morningTaskTitle').value = task.title;
       document.getElementById('morningTaskDuration').value = task.duration;
       document.getElementById('morningTaskDesc').value = task.description || '';
@@ -5471,7 +5662,7 @@
     function saveMorningTask() {
       const title = document.getElementById('morningTaskTitle').value.trim();
       const duration = parseInt(document.getElementById('morningTaskDuration').value) || 5;
-      const icon = document.getElementById('morningTaskIcon').value || '🌅';
+      const icon = document.getElementById('morningTaskIcon').value || '📋';
       const description = document.getElementById('morningTaskDesc').value.trim();
       
       if (!title) {
@@ -5479,34 +5670,41 @@
         return;
       }
       
+      const routineMode = appData.routineModes[editingRoutineMode];
+      const existingTask = routineMode?.tasks[editingMorningTaskIndex];
+      
       const task = {
-        id: editingMorningTaskIndex === -1 ? 'task_' + Date.now() : appData.morningRoutine[editingMorningTaskIndex].id,
+        id: editingMorningTaskIndex === -1 ? 'task_' + Date.now() : (existingTask?.id || 'task_' + Date.now()),
         title,
         duration,
         icon,
         description
       };
       
+      if (!routineMode) return;
+      
       if (editingMorningTaskIndex === -1) {
-        appData.morningRoutine.push(task);
+        routineMode.tasks.push(task);
       } else {
-        appData.morningRoutine[editingMorningTaskIndex] = task;
+        routineMode.tasks[editingMorningTaskIndex] = task;
       }
       
       saveData();
       closeMorningTaskEditModal();
-      renderMorningRoutineList();
+      renderRoutineModeList();
       document.getElementById('morningRoutineModal').classList.add('active');
       showToast('已保存', 'success');
     }
 
     function deleteMorningTask() {
       if (editingMorningTaskIndex === -1) return;
+      const routineMode = appData.routineModes[editingRoutineMode];
+      if (!routineMode) return;
       if (confirm('确定要删除这个任务吗？')) {
-        appData.morningRoutine.splice(editingMorningTaskIndex, 1);
+        routineMode.tasks.splice(editingMorningTaskIndex, 1);
         saveData();
         closeMorningTaskEditModal();
-        renderMorningRoutineList();
+        renderRoutineModeList();
         document.getElementById('morningRoutineModal').classList.add('active');
         showToast('已删除', '');
       }
@@ -5518,28 +5716,61 @@
       showToast('晨间任务已保存', 'success');
     }
 
-    // ==================== Morning Mode (逐项引导) ====================
-    function startMorningRoutine() {
-      if (!appData.morningRoutine || appData.morningRoutine.length === 0) {
-        showToast('请先添加晨间任务', '');
+    // ==================== Routine Mode (通用模式) ====================
+    // 启动指定模式
+    function startRoutineMode(mode) {
+      const routineMode = appData.routineModes[mode];
+      if (!routineMode || !routineMode.tasks || routineMode.tasks.length === 0) {
+        showToast('该模式还没有任务，请先编辑', '');
+        if (mode !== 'temp') {
+          openRoutineModeModal(mode);
+        }
         return;
       }
+      
+      const modeNames = {
+        morning: '晨间',
+        evening: '晚间',
+        weekend: '周末',
+        vacation: '假期',
+        temp: '临时'
+      };
+      const modeGreetings = {
+        morning: '早上好！',
+        evening: '晚上好！',
+        weekend: '周末愉快！',
+        vacation: '假期快乐！',
+        temp: ''
+      };
       
       morningSessionState = {
         isActive: true,
         currentIndex: 0,
-        tasks: [...appData.morningRoutine],
+        tasks: [...routineMode.tasks],
         timer: null,
         remaining: 0,
-        timerEnded: false
+        timerEnded: false,
+        modeName: modeNames[mode] || '任务'
       };
       
       // 语音播报开始
-      speakText('早上好！让我们开始晨间任务吧！');
-      sendNotification('🌅 晨间模式开始', '让我们按顺序完成早晨的任务吧！');
+      const greeting = modeGreetings[mode] || '';
+      speakText(greeting + `开始${modeNames[mode] || '任务'}模式！`);
+      sendNotification(`${routineMode.icon || '📋'} ${modeNames[mode]}模式开始`, '让我们按顺序完成任务吧！');
       
-      showMorningTask();
+      // 更新模式名称显示
+      document.getElementById('morningModeName').textContent = `${routineMode.icon || '📋'} ${routineMode.name || modeNames[mode] || '任务'}模式`;
+      
+      // 更新晨间模式界面为通用模式
       document.getElementById('morningModeOverlay').classList.add('active');
+      
+      // 显示第一个任务
+      showMorningTask();
+    }
+    
+    // 兼容旧的晨间模式
+    function startMorningRoutine() {
+      startRoutineMode('morning');
     }
 
     function showMorningTask() {
@@ -5669,18 +5900,20 @@
       // 释放屏幕常亮
       releaseWakeLock();
       
+      const modeName = morningSessionState.modeName || '任务';
+      
       // 庆祝完成
       showConfetti();
-      speakText('太棒了！晨间任务全部完成！你真是个行动派！');
-      sendNotification('🎉 晨间任务完成！', '你完成了所有早晨任务，干得漂亮！获得额外积分奖励！');
+      speakText('太棒了！' + modeName + '全部完成！你真是个行动派！');
+      sendNotification('🎉 ' + modeName + '完成！', '你完成了所有任务，干得漂亮！获得额外积分奖励！');
       
       // 给额外奖励
-      addPoints(20); // 完成晨间任务额外奖励20分
+      addPoints(20); // 完成任务模式额外奖励20分
       
       // 隐藏晨间模式界面
       document.getElementById('morningModeOverlay').classList.remove('active');
       
-      showToast('🎉 晨间任务全部完成！+20积分', 'reward');
+      showToast('🎉 ' + modeName + '全部完成！+20积分', 'reward');
       updateHeaderPoints();
     }
 
