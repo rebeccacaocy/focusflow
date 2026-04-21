@@ -1162,32 +1162,29 @@
 </head>
 <body>
 
-  <!-- 密码锁页面 - iPad兼容版 -->
+  <!-- 密码锁页面 -->
   <div id="authScreen" style="display:none; position:fixed; inset:0; z-index:9999;
     background:linear-gradient(135deg,#6366F1,#4F46E5);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
     font-family:'Nunito','PingFang SC',sans-serif; color:white;">
-    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:300px; text-align:center;">
-      <div style="font-size:56px; margin-bottom:16px;">🎯</div>
-      <div style="font-size:26px; font-weight:800; margin-bottom:8px;">FocusFlow</div>
-      <div style="font-size:14px; opacity:0.8; margin-bottom:40px;">ADHD 自我管理助手</div>
-      <div style="background:rgba(255,255,255,0.15); border-radius:20px; padding:32px 28px; text-align:center;">
-        <div style="font-size:16px; font-weight:700; margin-bottom:20px;">请输入访问密码</div>
-        <input id="authInput" type="password" placeholder="密码"
-          style="width:100%; padding:14px 16px; border-radius:12px; border:2px solid rgba(255,255,255,0.3);
-          background:rgba(255,255,255,0.2); color:white; font-size:18px; text-align:center;
-          outline:none; font-family:inherit; letter-spacing:4px; -webkit-appearance:none;"
-          onkeydown="if(event.key==='Enter') checkAuth()" />
-        <div id="authError" style="color:#FCA5A5; font-size:13px; margin-top:10px; min-height:20px;"></div>
-        <!-- 使用div+onclick代替button，iPad兼容性更好 -->
-        <div id="authSubmitBtn"
-          style="width:100%; margin-top:12px; padding:14px; border-radius:12px;
-          background:white; color:#6366F1; font-size:16px; font-weight:800;
-          cursor:pointer; font-family:inherit;"
-          onclick="checkAuth()">
-          进入 →
-        </div>
-        <div style="margin-top:16px; font-size:12px; opacity:0.6;">登录后30天内免验证</div>
+    <div style="font-size:56px; margin-bottom:16px;">🎯</div>
+    <div style="font-size:26px; font-weight:800; margin-bottom:8px;">FocusFlow</div>
+    <div style="font-size:14px; opacity:0.8; margin-bottom:40px;">ADHD 自我管理助手</div>
+    <div style="background:rgba(255,255,255,0.15); border-radius:20px; padding:32px 28px; width:300px; text-align:center; backdrop-filter:blur(10px);">
+      <div style="font-size:16px; font-weight:700; margin-bottom:20px;">请输入访问密码</div>
+      <input id="authInput" type="password" placeholder="密码"
+        style="width:100%; padding:14px 16px; border-radius:12px; border:2px solid rgba(255,255,255,0.3);
+        background:rgba(255,255,255,0.2); color:white; font-size:18px; text-align:center;
+        outline:none; font-family:inherit; letter-spacing:4px;"
+        onkeydown="if(event.key==='Enter') checkAuth()" />
+      <div id="authError" style="color:#FCA5A5; font-size:13px; margin-top:10px; min-height:20px;"></div>
+      <div onclick="checkAuth()"
+        style="width:100%; margin-top:12px; padding:14px; border-radius:12px;
+        background:white; color:#6366F1; font-size:16px; font-weight:800;
+        cursor:pointer; font-family:inherit; text-align:center;">
+        进入 →
       </div>
+      <div style="margin-top:16px; font-size:12px; opacity:0.6;">登录后30天内免验证</div>
     </div>
   </div>
 
